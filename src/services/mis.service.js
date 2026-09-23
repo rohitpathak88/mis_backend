@@ -681,92 +681,162 @@ const updateTransactionStatus = async ({
         throw new Error(`Invalid transaction status: ${status}`);
     }
 
+    /*
+     * Verify user.
+     *
+     * Normal ORG_ADMIN:
+     * - organization_id must match the selected organization.
+     *
+     * SUPER_ADMIN:
+     * - organization_id is NULL.
+     * - Can operate on the selected organization.
+     */
     const [users] = await db.query(
         `
-        SELECT r.name AS roleName
+        SELECT
+            r.name AS roleName
         FROM users u
-        INNER JOIN roles r ON r.id = u.role_id
-        WHERE u.id = ?
-          AND u.organization_id = ?
-          AND u.status = 'ACTIVE'
+        INNER JOIN roles r
+            ON r.id = u.role_id
+        WHERE
+            u.id = ?
+            AND (
+                u.organization_id = ?
+                OR r.name = 'SUPER_ADMIN'
+            )
+            AND u.status = 'ACTIVE'
         LIMIT 1
         `,
         [userId, organizationId]
     );
 
-    if (!users.length || !['ORG_ADMIN', 'SUPER_ADMIN'].includes(users[0].roleName)) {
+    if (
+        !users.length ||
+        !["ORG_ADMIN", "SUPER_ADMIN"].includes(users[0].roleName)
+    ) {
         const error = new Error(
             "Only an organization administrator can change transaction status."
         );
+
         error.code = "MIS_STATUS_FORBIDDEN";
+
         throw error;
     }
 
+    /*
+     * Get the transaction and its original
+     * disbursement amount.
+     */
     const [loans] = await db.query(
         `
         SELECT
             ld.id,
+            ld.disbursement_amount AS disbursementAmount,
             lr.id AS reconciliationId,
             COALESCE(lr.status, 'PENDING') AS currentStatus
         FROM loan_disbursements ld
         LEFT JOIN loan_reconciliations lr
             ON lr.loan_id = ld.id
-        WHERE ld.id = ?
-          AND ld.organization_id = ?
+        WHERE
+            ld.id = ?
+            AND ld.organization_id = ?
         LIMIT 1
         `,
         [loanId, organizationId]
     );
 
     if (!loans.length) {
-        const error = new Error("MIS transaction was not found.");
+        const error = new Error(
+            "MIS transaction was not found."
+        );
+
         error.code = "MIS_TRANSACTION_NOT_FOUND";
+
         throw error;
     }
 
     const currentStatus = loans[0].currentStatus;
 
-    if (currentStatus === "APPROVED" && status !== "APPROVED") {
+    /*
+     * Once approved, the transaction cannot
+     * be moved back to another status.
+     */
+    if (
+        currentStatus === "APPROVED" &&
+        status !== "APPROVED"
+    ) {
         throw new Error(
             "An approved transaction cannot be moved back to another status."
         );
     }
 
+    /*
+     * Existing reconciliation record.
+     */
     if (loans[0].reconciliationId) {
+
         await db.query(
             `
             UPDATE loan_reconciliations
             SET
                 status = ?,
                 remarks = ?,
+
+                approved_amount = CASE
+                    WHEN ? = 'APPROVED'
+                        THEN ?
+                    ELSE approved_amount
+                END,
+
                 approved_by = CASE
-                    WHEN ? = 'APPROVED' THEN ?
+                    WHEN ? = 'APPROVED'
+                        THEN ?
                     ELSE approved_by
                 END,
+
                 approved_at = CASE
-                    WHEN ? = 'APPROVED' THEN NOW()
+                    WHEN ? = 'APPROVED'
+                        THEN NOW()
                     ELSE approved_at
                 END,
+
                 bank_approval_date = CASE
-                    WHEN ? = 'APPROVED' THEN NOW()
+                    WHEN ? = 'APPROVED'
+                        THEN NOW()
                     ELSE bank_approval_date
                 END,
+
                 updated_at = NOW()
-            WHERE id = ?
-              AND loan_id = ?
+
+            WHERE
+                id = ?
+                AND loan_id = ?
             `,
             [
                 status,
                 remarks || null,
+
+                status,
+                loans[0].disbursementAmount,
+
                 status,
                 userId,
+
                 status,
+
                 status,
+
                 loans[0].reconciliationId,
                 loanId
             ]
         );
+
     } else {
+
+        /*
+         * No reconciliation record exists yet.
+         * Create one.
+         */
         await db.query(
             `
             INSERT INTO loan_reconciliations
@@ -775,18 +845,48 @@ const updateTransactionStatus = async ({
                 loan_id,
                 status,
                 remarks,
+                approved_amount,
                 approved_by,
                 approved_at,
                 bank_approval_date
             )
-            VALUES (?, ?, ?, ?, ?, CASE WHEN ? = 'APPROVED' THEN NOW() ELSE NULL END, CASE WHEN ? = 'APPROVED' THEN NOW() ELSE NULL END)
+            VALUES
+            (
+                ?,
+                ?,
+                ?,
+                ?,
+                CASE
+                    WHEN ? = 'APPROVED'
+                        THEN ?
+                    ELSE 0
+                END,
+                ?,
+                CASE
+                    WHEN ? = 'APPROVED'
+                        THEN NOW()
+                    ELSE NULL
+                END,
+                CASE
+                    WHEN ? = 'APPROVED'
+                        THEN NOW()
+                    ELSE NULL
+                END
+            )
             `,
             [
                 organizationId,
                 loanId,
                 status,
                 remarks || null,
-                status === "APPROVED" ? userId : null,
+
+                status,
+                loans[0].disbursementAmount,
+
+                status === "APPROVED"
+                    ? userId
+                    : null,
+
                 status,
                 status
             ]
