@@ -11,6 +11,7 @@ const userRoutes = require("./routes/user.routes");
 const departmentRoutes = require("./routes/department.routes");
 const teamRoutes = require("./routes/team.routes");
 const payoutRoutes = require("./routes/payout.routes");
+const organizationRoutes = require("./routes/organization.routes");
 const app = express();
 
 const swaggerUi = require("swagger-ui-express");
@@ -30,6 +31,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/departments", departmentRoutes);
 app.use("/api/teams", teamRoutes);
 app.use("/api/payout", payoutRoutes);
+app.use("/api/organizations", organizationRoutes);
 app.use(
     "/api/docs",
     swaggerUi.serve,

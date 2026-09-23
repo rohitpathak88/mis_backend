@@ -15,7 +15,7 @@ const { allowRoles } =
 router.use(authenticate);
 
 router.use(
-    allowRoles("ORG_ADMIN")
+    allowRoles("ORG_ADMIN", "SUPER_ADMIN")
 );
 
 

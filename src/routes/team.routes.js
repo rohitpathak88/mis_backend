@@ -9,7 +9,7 @@ const router = express.Router();
 router.use(authenticate);
 
 // Only organization administrators can manage teams
-router.use(allowRoles("ORG_ADMIN"));
+router.use(allowRoles("ORG_ADMIN", "SUPER_ADMIN"));
 
 router.get(
     "/",

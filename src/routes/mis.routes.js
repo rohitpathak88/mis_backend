@@ -17,7 +17,7 @@ router.post(
 router.patch(
     "/data/:id/status",
     authenticate,
-    allowRoles("ORG_ADMIN"),
+    allowRoles("ORG_ADMIN", "SUPER_ADMIN"),
     misController.updateTransactionStatus
 );
 

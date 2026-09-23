@@ -694,7 +694,7 @@ const updateTransactionStatus = async ({
         [userId, organizationId]
     );
 
-    if (!users.length || users[0].roleName !== "ORG_ADMIN") {
+    if (!users.length || !['ORG_ADMIN', 'SUPER_ADMIN'].includes(users[0].roleName)) {
         const error = new Error(
             "Only an organization administrator can change transaction status."
         );
@@ -817,7 +817,7 @@ const getMISScope = async ({
             ON r.id = u.role_id
         WHERE
             u.id = ?
-            AND u.organization_id = ?
+            AND (u.organization_id = ? OR r.name = 'SUPER_ADMIN')
             AND u.status = 'ACTIVE'
         LIMIT 1
         `,
@@ -870,6 +870,10 @@ const getMISScope = async ({
             type: "DEPARTMENT",
             departmentId: user.departmentId
         };
+    }
+
+    if (user.roleName === "SUPER_ADMIN") {
+        return { type: "ORGANIZATION" };
     }
 
     if (

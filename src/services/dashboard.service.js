@@ -17,7 +17,8 @@ const db = require("../config/database");
  */
 const getDashboardScope = async ({
     organizationId,
-    userId
+    userId,
+    role
 }) => {
 
     const [rows] = await db.query(
@@ -36,7 +37,7 @@ const getDashboardScope = async ({
 
         WHERE
             u.id = ?
-            AND u.organization_id = ?
+            AND (u.organization_id = ? OR r.name = 'SUPER_ADMIN')
             AND u.status = 'ACTIVE'
 
         LIMIT 1
@@ -97,6 +98,10 @@ const getDashboardScope = async ({
             type: "TEAM",
             teamId: user.teamId
         };
+    }
+
+    if (user.roleName === "SUPER_ADMIN") {
+        return { type: "ORGANIZATION" };
     }
 
     if (

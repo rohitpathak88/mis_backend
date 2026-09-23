@@ -7,7 +7,7 @@ const { allowRoles } = require("../middleware/role.middleware");
 const router = express.Router();
 
 router.use(authenticate);
-router.use(allowRoles("ORG_ADMIN"));
+router.use(allowRoles("ORG_ADMIN", "SUPER_ADMIN"));
 
 router.get("/", departmentController.getDepartments);
 router.get("/:id", departmentController.getDepartmentById);

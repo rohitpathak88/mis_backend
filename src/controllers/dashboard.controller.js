@@ -1,19 +1,27 @@
 const dashboardService = require("../services/dashboard.service");
 
 const getDashboard = async (req, res) => {
-
     try {
+        const { month, organizationId: requestedOrganizationId } = req.query;
 
-        const {
+        let organizationId = req.user.organizationId;
+
+        if (req.user.role === "SUPER_ADMIN") {
+            organizationId = Number(requestedOrganizationId);
+
+            if (!organizationId || organizationId <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Organization selection is required"
+                });
+            }
+        }
+
+        const dashboard = await dashboardService.getDashboard({
+            organizationId,
+            userId: req.user.userId,
             month
-        } = req.query;
-
-        const dashboard =
-            await dashboardService.getDashboard({
-                organizationId: req.user.organizationId,
-                userId: req.user.userId,
-                month
-            });
+        });
 
         return res.json({
             success: true,
@@ -21,11 +29,7 @@ const getDashboard = async (req, res) => {
         });
 
     } catch (error) {
-
-        console.error(
-            "Dashboard error:",
-            error
-        );
+        console.error("Dashboard error:", error);
 
         if (error.code === "DASHBOARD_SCOPE_FORBIDDEN") {
             return res.status(403).json({

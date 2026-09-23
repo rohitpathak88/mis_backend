@@ -67,7 +67,7 @@ const login = async (email, password) => {
         token,
         user: {
             id: user.id,
-            organizationId: user.organization_id,
+            organizationId: user.role === "SUPER_ADMIN" ? null : user.organization_id,
             name: user.name,
             email: user.email,
             role: user.role

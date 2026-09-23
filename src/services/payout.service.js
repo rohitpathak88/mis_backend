@@ -11,7 +11,7 @@ const getRoleScope = async (organizationId, userId) => {
         SELECT r.name AS role_name, u.department_id, u.team_id
         FROM users u
         INNER JOIN roles r ON r.id = u.role_id
-        WHERE u.id = ? AND u.organization_id = ? AND u.status = 'ACTIVE'
+        WHERE u.id = ? AND (u.organization_id = ? OR r.name = 'SUPER_ADMIN') AND u.status = 'ACTIVE'
         LIMIT 1
     `, [userId, organizationId]);
 
@@ -37,7 +37,7 @@ const ensureDefaultRules = async (organizationId, userId) => {
         await db.query(`
             INSERT INTO payout_rules
                 (organization_id, min_amount, max_amount, payout_rate, effective_from, created_by)
-            VALUES (?, ?, ?, ?, DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), ?)
+            VALUES (?, ?, ?, ?, '2000-01-01', ?)
         `, [organizationId, rule.minAmount, rule.maxAmount, rule.rate, userId]);
     }
 };
@@ -108,21 +108,19 @@ const createPeriod = async ({ organizationId, userId, periodMonth }) => {
 const getPeriods = async ({ organizationId, userId }) => {
     const scope = await getRoleScope(organizationId, userId);
     const params = [organizationId];
-    let teamJoin = "";
-    let teamCondition = "";
+    let payoutCondition = "";
 
-    if (scope.role_name === "TEAM_LEADER") {
-        teamJoin = "INNER JOIN payouts p_scope ON p_scope.payout_period_id = pp.id";
-        teamCondition = "AND p_scope.team_id = ?";
-        params.push(scope.team_id);
+    if (!['ORG_ADMIN', 'SUPER_ADMIN'].includes(scope.role_name)) {
+        payoutCondition = "INNER JOIN payouts p_scope ON p_scope.payout_period_id = pp.id AND p_scope.team_leader_id = ?";
+        params.push(userId);
     }
 
     const [rows] = await db.query(`
-        SELECT DISTINCT pp.id, pp.period_month AS periodMonth, pp.status,
+        SELECT pp.id, DATE_FORMAT(pp.period_month, '%Y-%m') AS periodMonth, pp.status,
                pp.created_at AS createdAt, pp.approved_at AS approvedAt
         FROM payout_periods pp
-        ${teamJoin}
-        WHERE pp.organization_id = ? ${teamCondition}
+        ${payoutCondition}
+        WHERE pp.organization_id = ?
         ORDER BY pp.period_month DESC
     `, params);
 
@@ -139,7 +137,7 @@ const getRuleForAmount = (rules, amount) => {
 
 const calculatePeriod = async ({ organizationId, userId, periodId }) => {
     const scope = await getRoleScope(organizationId, userId);
-    if (scope.role_name !== "ORG_ADMIN") {
+    if (!['ORG_ADMIN', 'SUPER_ADMIN'].includes(scope.role_name)) {
         const error = new Error("Only an organization administrator can calculate payouts.");
         error.code = "PAYOUT_FORBIDDEN";
         throw error;
@@ -255,9 +253,10 @@ const getPayoutPeriod = async ({ organizationId, userId, periodId }) => {
     const scope = await getRoleScope(organizationId, userId);
     const params = [organizationId, periodId];
     let condition = "";
-    if (scope.role_name === "TEAM_LEADER") {
-        condition = "AND p.team_id = ?";
-        params.push(scope.team_id);
+
+    if (!['ORG_ADMIN', 'SUPER_ADMIN'].includes(scope.role_name)) {
+        condition = "AND p.team_leader_id = ?";
+        params.push(userId);
     }
 
     const [rows] = await db.query(`
@@ -266,7 +265,8 @@ const getPayoutPeriod = async ({ organizationId, userId, periodId }) => {
                p.total_approved_amount AS totalApprovedAmount,
                p.payout_rate AS payoutRate, p.payout_amount AS payoutAmount,
                p.status, p.calculated_at AS calculatedAt,
-               pp.period_month AS periodMonth, pp.status AS periodStatus
+               p.approved_at AS approvedAt, p.paid_at AS paidAt,
+               DATE_FORMAT(pp.period_month, '%Y-%m') AS periodMonth, pp.status AS periodStatus
         FROM payouts p
         INNER JOIN payout_periods pp ON pp.id = p.payout_period_id
         INNER JOIN teams t ON t.id = p.team_id
@@ -278,9 +278,46 @@ const getPayoutPeriod = async ({ organizationId, userId, periodId }) => {
     return rows;
 };
 
+const getPayoutHistory = async ({ organizationId, userId }) => {
+    const scope = await getRoleScope(organizationId, userId);
+    const params = [organizationId];
+    let condition = "";
+
+    if (!['ORG_ADMIN', 'SUPER_ADMIN'].includes(scope.role_name)) {
+        condition = "AND p.team_leader_id = ?";
+        params.push(userId);
+    }
+
+    const [rows] = await db.query(`
+        SELECT
+            p.id,
+            p.payout_period_id AS periodId,
+            DATE_FORMAT(pp.period_month, '%Y-%m') AS periodMonth,
+            p.team_id AS teamId,
+            t.name AS teamName,
+            p.team_leader_id AS teamLeaderId,
+            u.name AS teamLeaderName,
+            p.total_approved_amount AS totalApprovedAmount,
+            p.payout_rate AS payoutRate,
+            p.payout_amount AS payoutAmount,
+            p.status,
+            p.calculated_at AS calculatedAt,
+            p.approved_at AS approvedAt,
+            p.paid_at AS paidAt
+        FROM payouts p
+        INNER JOIN payout_periods pp ON pp.id = p.payout_period_id
+        INNER JOIN teams t ON t.id = p.team_id
+        INNER JOIN users u ON u.id = p.team_leader_id
+        WHERE p.organization_id = ? ${condition}
+        ORDER BY pp.period_month DESC, p.id DESC
+    `, params);
+
+    return rows;
+};
+
 const updatePayoutStatus = async ({ organizationId, userId, payoutId, status }) => {
     const scope = await getRoleScope(organizationId, userId);
-    if (scope.role_name !== "ORG_ADMIN") throw new Error("Only an organization administrator can change payout status.");
+    if (!['ORG_ADMIN', 'SUPER_ADMIN'].includes(scope.role_name)) throw new Error("Only an organization administrator can change payout status.");
 
     const allowed = ["REVIEWED", "APPROVED", "PAID", "LOCKED"];
     if (!allowed.includes(status)) throw new Error("Invalid payout status.");
@@ -323,5 +360,6 @@ module.exports = {
     getPeriods,
     calculatePeriod,
     getPayoutPeriod,
+    getPayoutHistory,
     updatePayoutStatus
 };

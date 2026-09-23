@@ -45,6 +45,11 @@ const getPayoutPeriod = handle((req) => payoutService.getPayoutPeriod({
     periodId: Number(req.params.periodId)
 }));
 
+const getPayoutHistory = handle((req) => payoutService.getPayoutHistory({
+    organizationId: req.user.organizationId,
+    userId: req.user.userId
+}));
+
 const updatePayoutStatus = handle((req) => payoutService.updatePayoutStatus({
     organizationId: req.user.organizationId,
     userId: req.user.userId,
@@ -59,5 +64,6 @@ module.exports = {
     getPeriods,
     calculatePeriod,
     getPayoutPeriod,
+    getPayoutHistory,
     updatePayoutStatus
 };
