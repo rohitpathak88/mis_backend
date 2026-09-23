@@ -1,0 +1,369 @@
+openapi: 3.0.3
+info:
+  title: MIS Management & Analytics Platform API
+  description: Multi-tenant MIS Management and Analytics Platform API.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5001
+    description: Local development server
+tags:
+  - name: Health
+  - name: Authentication
+  - name: MIS
+  - name: Dashboard
+  - name: Users
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        message: { type: string, example: Authentication token required }
+    HealthResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        database: { type: string, example: connected }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, example: admin@mis.local }
+        password: { type: string, format: password, example: Admin@123 }
+    RegisterOrganizationRequest:
+      type: object
+      required: [organizationName, adminName, email, password]
+      properties:
+        organizationName: { type: string, example: ABC Finance Pvt Ltd }
+        adminName: { type: string, example: Rohit Sharma }
+        email: { type: string, format: email, example: admin@abcfinance.com }
+        password: { type: string, format: password, minLength: 8, example: Admin@123 }
+    AuthUser:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        name: { type: string, example: Demo Admin }
+        email: { type: string, format: email, example: admin@mis.local }
+        organizationId: { type: integer, example: 1 }
+        role: { type: string, example: ORG_ADMIN }
+    Role:
+      type: object
+      properties:
+        id: { type: integer, example: 5 }
+        name: { type: string, example: MIS_USER }
+        description: { type: string, example: User responsible for MIS operations }
+    User:
+      type: object
+      properties:
+        id: { type: integer, example: 12 }
+        name: { type: string, example: MIS Manager }
+        email: { type: string, format: email, example: mis.manager@example.com }
+        status: { type: string, enum: [ACTIVE, INACTIVE], example: ACTIVE }
+        lastLoginAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        role: { $ref: '#/components/schemas/Role' }
+    CreateUserRequest:
+      type: object
+      required: [name, email, password, roleId]
+      properties:
+        name: { type: string, example: MIS Manager }
+        email: { type: string, format: email, example: mis.manager@example.com }
+        password: { type: string, format: password, minLength: 8, example: Manager@123 }
+        roleId: { type: integer, example: 5 }
+    UpdateUserRequest:
+      type: object
+      required: [name, email, roleId]
+      properties:
+        name: { type: string, example: MIS Manager }
+        email: { type: string, format: email, example: mis.manager@example.com }
+        roleId: { type: integer, example: 5 }
+    UpdateUserStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [ACTIVE, INACTIVE], example: INACTIVE }
+    UpdateUserRoleRequest:
+      type: object
+      required: [roleId]
+      properties:
+        roleId: { type: integer, example: 5 }
+    UpdateUserPasswordRequest:
+      type: object
+      required: [password]
+      properties:
+        password: { type: string, format: password, minLength: 8, example: NewPassword@123 }
+    MISRecord:
+      type: object
+      properties:
+        id: { type: integer }
+        customerName: { type: string }
+        contactNumber: { type: string }
+        employerName: { type: string }
+        bankName: { type: string }
+        city: { type: string }
+        product: { type: string }
+        loanAccountNo: { type: string }
+        disbursementAmount: { type: number, format: double }
+        disbursementMonth: { type: string, format: date }
+        sellerName: { type: string }
+        teamName: { type: string }
+        dsaCode: { type: string }
+        cashback: { type: number, format: double }
+        subvention: { type: number, format: double }
+        importId: { type: integer }
+        createdAt: { type: string, format: date-time }
+    DashboardSummary:
+      type: object
+      properties:
+        totalLoans: { type: integer }
+        totalDisbursement: { type: number, format: double }
+        averageLoanAmount: { type: number, format: double }
+        totalCashback: { type: number, format: double }
+        totalSubvention: { type: number, format: double }
+    DashboardBreakdown:
+      type: object
+      properties:
+        name: { type: string }
+        loans: { type: integer }
+        amount: { type: number, format: double }
+paths:
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Check API and database health
+      responses:
+        '200':
+          description: API health status
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthResponse' }
+  /api/auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200': { description: Login successful }
+        '401': { description: Invalid email or password }
+  /api/auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register organization
+      description: Creates an organization and its first ORG_ADMIN. Organization code is generated by the server.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterOrganizationRequest' }
+      responses:
+        '201': { description: Organization registered successfully }
+        '400': { description: Invalid registration request }
+        '409': { description: Email already registered }
+  /api/auth/me:
+    get:
+      tags: [Authentication]
+      summary: Get current authenticated user
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/AuthUser' }
+        '401': { description: Unauthorized }
+  /api/mis/import:
+    post:
+      tags: [MIS]
+      summary: Import MIS Excel file
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                reportingMonth: { type: string, format: date, example: '2026-06-01' }
+      responses:
+        '200': { description: MIS file imported successfully }
+        '400': { description: Invalid file or import request }
+        '401': { description: Unauthorized }
+  /api/mis/data:
+    get:
+      tags: [MIS]
+      summary: Get MIS data
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: month, in: query, schema: { type: string, format: date } }
+        - { name: bank, in: query, schema: { type: string } }
+        - { name: product, in: query, schema: { type: string } }
+        - { name: team, in: query, schema: { type: string } }
+        - { name: seller, in: query, schema: { type: string } }
+        - { name: city, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: MIS data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/MISRecord' }
+        '401': { description: Unauthorized }
+  /api/dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Get dashboard analytics
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: month, in: query, schema: { type: string, format: date }, example: '2026-06-01' }
+      responses:
+        '200': { description: Dashboard data retrieved successfully }
+        '401': { description: Unauthorized }
+  /api/users:
+    get:
+      tags: [Users]
+      summary: Get organization users
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Users retrieved successfully }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+    post:
+      tags: [Users]
+      summary: Create organization user
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateUserRequest' }
+      responses:
+        '201': { description: User created successfully }
+        '400': { description: Invalid request or email already registered }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+  /api/users/roles:
+    get:
+      tags: [Users]
+      summary: Get available organization roles
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Roles retrieved successfully }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+  /api/users/{id}:
+    get:
+      tags: [Users]
+      summary: Get user by ID
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: User retrieved successfully }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '404': { description: User not found }
+    put:
+      tags: [Users]
+      summary: Update user
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateUserRequest' }
+      responses:
+        '200': { description: User updated successfully }
+        '400': { description: Invalid request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '404': { description: User not found }
+    delete:
+      tags: [Users]
+      summary: Deactivate user
+      description: Soft deletes the user by changing status to INACTIVE.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: User deactivated successfully }
+        '400': { description: Unable to deactivate user }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '404': { description: User not found }
+  /api/users/{id}/status:
+    patch:
+      tags: [Users]
+      summary: Update user status
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateUserStatusRequest' }
+      responses:
+        '200': { description: User status updated successfully }
+        '400': { description: Invalid status }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '404': { description: User not found }
+  /api/users/{id}/role:
+    patch:
+      tags: [Users]
+      summary: Change user role
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateUserRoleRequest' }
+      responses:
+        '200': { description: User role updated successfully }
+        '400': { description: Invalid role }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '404': { description: User not found }
+  /api/users/{id}/password:
+    patch:
+      tags: [Users]
+      summary: Update user password
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateUserPasswordRequest' }
+      responses:
+        '200': { description: Password updated successfully }
+        '400': { description: Invalid password }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '404': { description: User not found }
