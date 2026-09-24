@@ -1,22 +1,23 @@
 openapi: 3.0.3
 info:
   title: MIS Management & Analytics Platform API
-  description: Multi-tenant MIS Management and Analytics Platform API.
-  version: 1.0.0
+  description: Multi-tenant MIS Management & Analytics Platform API.
+  version: 1.1.0
 servers:
-- url: http://localhost:5001
-  description: Local development server
+  - url: http://localhost:5001
+    description: Local development
+  - url: https://vrs.code19msp.com
+    description: Unit test server
 tags:
-- name: Health
-- name: Authentication
-- name: MIS
-- name: Dashboard
-- name: Users
-- name: Payout
-- name: Departments
-  description: Department management APIs
-- name: Teams
-  description: Team management APIs
+  - name: Health
+  - name: Authentication
+  - name: MIS
+  - name: Dashboard
+  - name: Users
+  - name: Departments
+  - name: Teams
+  - name: Payout
+  - name: Reports
 components:
   securitySchemes:
     bearerAuth:
@@ -27,1248 +28,664 @@ components:
     ErrorResponse:
       type: object
       properties:
-        success:
-          type: boolean
-          example: false
-        message:
-          type: string
-          example: Authentication token required
-    HealthResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        database:
-          type: string
-          example: connected
+        success: {type: boolean, example: false}
+        message: {type: string, example: Authentication token required}
     LoginRequest:
       type: object
-      required:
-      - email
-      - password
+      required: [email, password]
       properties:
-        email:
-          type: string
-          format: email
-          example: admin@mis.local
-        password:
-          type: string
-          format: password
-          example: Admin@123
+        email: {type: string, format: email, example: admin@mis.local}
+        password: {type: string, format: password, example: Admin@123}
     RegisterOrganizationRequest:
       type: object
-      required:
-      - organizationName
-      - adminName
-      - email
-      - password
+      required: [organizationName, adminName, email, password]
       properties:
-        organizationName:
-          type: string
-          example: ABC Finance Pvt Ltd
-        adminName:
-          type: string
-          example: Rohit Sharma
-        email:
-          type: string
-          format: email
-          example: admin@abcfinance.com
-        password:
-          type: string
-          format: password
-          minLength: 8
-          example: Admin@123
+        organizationName: {type: string, example: ABC Finance Pvt Ltd}
+        adminName: {type: string, example: Rohit Sharma}
+        email: {type: string, format: email, example: admin@abcfinance.com}
+        password: {type: string, format: password, minLength: 8, example: Admin@123}
     AuthUser:
       type: object
       properties:
-        id:
-          type: integer
-          example: 1
-        name:
-          type: string
-          example: Demo Admin
-        email:
-          type: string
-          format: email
-          example: admin@mis.local
-        organizationId:
-          type: integer
-          example: 1
-        role:
-          type: string
-          example: ORG_ADMIN
+        id: {type: integer, example: 1}
+        name: {type: string, example: Demo Admin}
+        email: {type: string, format: email, example: admin@mis.local}
+        organizationId: {type: integer, nullable: true, example: 1}
+        role: {type: string, example: ORG_ADMIN}
+        departmentId: {type: integer, nullable: true, example: 2}
+        teamId: {type: integer, nullable: true, example: 5}
     Role:
       type: object
       properties:
-        id:
-          type: integer
-          example: 5
-        name:
-          type: string
-          example: MIS_USER
-        description:
-          type: string
-          example: User responsible for MIS operations
+        id: {type: integer, example: 5}
+        name: {type: string, example: MIS_USER}
+        description: {type: string}
     User:
       type: object
       properties:
-        id:
-          type: integer
-          example: 12
-        name:
-          type: string
-          example: MIS Manager
-        email:
-          type: string
-          format: email
-          example: mis.manager@example.com
-        status:
-          type: string
-          enum:
-          - ACTIVE
-          - INACTIVE
-          example: ACTIVE
-        lastLoginAt:
-          type: string
-          format: date-time
-          nullable: true
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-        role:
-          $ref: '#/components/schemas/Role'
+        id: {type: integer, example: 12}
+        name: {type: string, example: MIS Manager}
+        email: {type: string, format: email, example: mis.manager@example.com}
+        status: {type: string, enum: [ACTIVE, INACTIVE]}
+        lastLoginAt: {type: string, format: date-time, nullable: true}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+        role: {$ref: '#/components/schemas/Role'}
     CreateUserRequest:
       type: object
-      required:
-      - name
-      - email
-      - password
-      - roleId
+      required: [name, email, password, roleId]
       properties:
-        name:
-          type: string
-          example: MIS Manager
-        email:
-          type: string
-          format: email
-          example: mis.manager@example.com
-        password:
-          type: string
-          format: password
-          minLength: 8
-          example: Manager@123
-        roleId:
-          type: integer
-          example: 5
+        name: {type: string}
+        email: {type: string, format: email}
+        password: {type: string, format: password, minLength: 8}
+        roleId: {type: integer}
     UpdateUserRequest:
       type: object
-      required:
-      - name
-      - email
-      - roleId
+      required: [name, email, roleId]
       properties:
-        name:
-          type: string
-          example: MIS Manager
-        email:
-          type: string
-          format: email
-          example: mis.manager@example.com
-        roleId:
-          type: integer
-          example: 5
+        name: {type: string}
+        email: {type: string, format: email}
+        roleId: {type: integer}
     UpdateUserStatusRequest:
       type: object
-      required:
-      - status
+      required: [status]
       properties:
-        status:
-          type: string
-          enum:
-          - ACTIVE
-          - INACTIVE
-          example: INACTIVE
+        status: {type: string, enum: [ACTIVE, INACTIVE]}
     UpdateUserRoleRequest:
       type: object
-      required:
-      - roleId
+      required: [roleId]
       properties:
-        roleId:
-          type: integer
-          example: 5
+        roleId: {type: integer}
     UpdateUserPasswordRequest:
       type: object
-      required:
-      - password
+      required: [password]
       properties:
-        password:
-          type: string
-          format: password
-          minLength: 8
-          example: NewPassword@123
+        password: {type: string, format: password, minLength: 8}
+    Department:
+      type: object
+      properties:
+        id: {type: integer}
+        name: {type: string}
+        organizationId: {type: integer}
+        status: {type: string}
+    Team:
+      type: object
+      properties:
+        id: {type: integer}
+        name: {type: string}
+        organizationId: {type: integer}
+        departmentId: {type: integer}
+        teamLeaderId: {type: integer, nullable: true}
+        status: {type: string}
     MISRecord:
       type: object
       properties:
-        id:
-          type: integer
-        customerName:
-          type: string
-        contactNumber:
-          type: string
-        employerName:
-          type: string
-        bankName:
-          type: string
-        city:
-          type: string
-        product:
-          type: string
-        loanAccountNo:
-          type: string
-        disbursementAmount:
-          type: number
-          format: double
-        disbursementMonth:
-          type: string
-          format: date
-        sellerName:
-          type: string
-        teamName:
-          type: string
-        dsaCode:
-          type: string
-        cashback:
-          type: number
-          format: double
-        subvention:
-          type: number
-          format: double
-        importId:
-          type: integer
-        createdAt:
-          type: string
-          format: date-time
+        id: {type: integer}
+        customerName: {type: string}
+        contactNumber: {type: string}
+        employerName: {type: string}
+        bankName: {type: string}
+        city: {type: string}
+        product: {type: string}
+        loanAccountNo: {type: string}
+        disbursementAmount: {type: number, format: double}
+        disbursementMonth: {type: string, format: date}
+        sellerName: {type: string}
+        teamName: {type: string}
+        dsaCode: {type: string}
+        cashback: {type: number, format: double}
+        subvention: {type: number, format: double}
+        importId: {type: integer}
+        createdAt: {type: string, format: date-time}
+    ImportResult:
+      type: object
+      properties:
+        importId: {type: integer}
+        fileName: {type: string}
+        reportingMonth: {type: string, format: date}
+        totalRows: {type: integer}
+        successfulRows: {type: integer}
+        failedRows: {type: integer}
+        status: {type: string, example: COMPLETED}
     DashboardSummary:
       type: object
       properties:
-        totalLoans:
-          type: integer
-        totalDisbursement:
-          type: number
-          format: double
-        averageLoanAmount:
-          type: number
-          format: double
-        totalCashback:
-          type: number
-          format: double
-        totalSubvention:
-          type: number
-          format: double
-    DashboardBreakdown:
-      type: object
-      properties:
-        name:
-          type: string
-        loans:
-          type: integer
-        amount:
-          type: number
-          format: double
-    PayoutRule:
-      type: object
-      properties:
-        id:
-          type: integer
-          example: 1
-        minAmount:
-          type: number
-          format: double
-          example: 0
-        maxAmount:
-          type: number
-          format: double
-          nullable: true
-          example: 1000000
-        payoutRate:
-          type: number
-          format: double
-          example: 0.5
-          description: Payout percentage applied to total approved amount.
-        effectiveFrom:
-          type: string
-          format: date
-          example: '2000-01-01'
-        effectiveTo:
-          type: string
-          format: date
-          nullable: true
-        status:
-          type: string
-          enum:
-          - ACTIVE
-          - INACTIVE
-          example: ACTIVE
-        createdAt:
-          type: string
-          format: date-time
-    CreatePayoutRuleRequest:
-      type: object
-      required:
-      - minAmount
-      - payoutRate
-      properties:
-        minAmount:
-          type: number
-          format: double
-          example: 0
-        maxAmount:
-          type: number
-          format: double
-          nullable: true
-          example: 1000000
-        payoutRate:
-          type: number
-          format: double
-          example: 0.5
-        effectiveFrom:
-          type: string
-          format: date
-          example: '2000-01-01'
-        effectiveTo:
-          type: string
-          format: date
-          nullable: true
-    CreatePayoutPeriodRequest:
-      type: object
-      required:
-      - periodMonth
-      properties:
-        periodMonth:
-          type: string
-          format: date
-          example: '2026-09-01'
-          description: Payout month in YYYY-MM-01 format.
+        totalLoans: {type: integer}
+        totalDisbursement: {type: number, format: double}
+        averageLoanAmount: {type: number, format: double}
+        totalCashback: {type: number, format: double}
+        totalSubvention: {type: number, format: double}
+        approvedLoans: {type: integer}
+        approvedAmount: {type: number, format: double}
     PayoutPeriod:
       type: object
       properties:
-        id:
-          type: integer
-          example: 1
-        periodMonth:
-          type: string
-          format: date
-          example: '2026-09-01'
-        status:
-          type: string
-          enum:
-          - DRAFT
-          - CALCULATED
-          - REVIEWED
-          - APPROVED
-          - PAID
-          - LOCKED
-          example: CALCULATED
-        createdAt:
-          type: string
-          format: date-time
-        approvedAt:
-          type: string
-          format: date-time
-          nullable: true
+        id: {type: integer}
+        periodMonth: {type: string, example: 2026-06}
+        status: {type: string, enum: [DRAFT, CALCULATED, REVIEWED, APPROVED, PAID, LOCKED]}
+        createdAt: {type: string, format: date-time}
+        approvedAt: {type: string, format: date-time, nullable: true}
     Payout:
       type: object
       properties:
-        id:
-          type: integer
-          example: 10
-        teamId:
-          type: integer
-          example: 2
-        teamName:
-          type: string
-          example: Delhi Team
-        teamLeaderId:
-          type: integer
-          example: 7
-        teamLeaderName:
-          type: string
-          example: Team Leader
-        totalApprovedAmount:
-          type: number
-          format: double
-          example: 2500000
-        payoutRate:
-          type: number
-          format: double
-          example: 1.0
-        payoutAmount:
-          type: number
-          format: double
-          example: 25000
-        status:
-          type: string
-          enum:
-          - CALCULATED
-          - REVIEWED
-          - APPROVED
-          - PAID
-          - LOCKED
-          example: CALCULATED
-        calculatedAt:
-          type: string
-          format: date-time
-        periodMonth:
-          type: string
-          format: date
-          example: '2026-09-01'
-        periodStatus:
-          type: string
-          enum:
-          - DRAFT
-          - CALCULATED
-          - REVIEWED
-          - APPROVED
-          - PAID
-          - LOCKED
-          example: CALCULATED
-    UpdatePayoutStatusRequest:
-      type: object
-      required:
-      - status
-      properties:
-        status:
-          type: string
-          enum:
-          - REVIEWED
-          - APPROVED
-          - PAID
-          - LOCKED
-          example: APPROVED
-    DepartmentInput:
-      type: object
-      required:
-      - name
-      properties:
-        name:
-          type: string
-          example: Sales
-        description:
-          type: string
-          nullable: true
-          example: Sales department
-        status:
-          type: string
-          example: ACTIVE
-    TeamInput:
-      type: object
-      required:
-      - name
-      - departmentId
-      properties:
-        name:
-          type: string
-          example: Delhi Team
-        departmentId:
-          type: integer
-          example: 1
-        description:
-          type: string
-          nullable: true
-          example: Delhi sales team
-        status:
-          type: string
-          example: ACTIVE
+        id: {type: integer}
+        payoutPeriodId: {type: integer}
+        teamLeaderId: {type: integer}
+        approvedAmount: {type: number, format: double}
+        payoutRate: {type: number, format: double}
+        payoutAmount: {type: number, format: double}
+        status: {type: string}
+        paidAt: {type: string, format: date-time, nullable: true}
+  parameters:
+    OrganizationId:
+      name: organizationId
+      in: query
+      required: false
+      description: Required when SUPER_ADMIN is viewing a selected organization.
+      schema: {type: integer}
+      example: 1
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: {type: integer}
+      example: 1
 paths:
   /api/health:
     get:
-      tags:
-      - Health
+      tags: [Health]
       summary: Check API and database health
       responses:
-        '200':
-          description: API health status
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HealthResponse'
+        '200': {description: API health status}
   /api/auth/login:
     post:
-      tags:
-      - Authentication
+      tags: [Authentication]
       summary: Login
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequest'
+            schema: {$ref: '#/components/schemas/LoginRequest'}
       responses:
-        '200':
-          description: Login successful
-        '401':
-          description: Invalid email or password
+        '200': {description: Login successful}
+        '401': {description: Invalid email or password}
   /api/auth/register:
     post:
-      tags:
-      - Authentication
-      summary: Register organization
-      description: Creates an organization and its first ORG_ADMIN. Organization code
-        is generated by the server.
+      tags: [Authentication]
+      summary: Register organization and first ORG_ADMIN
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/RegisterOrganizationRequest'
+            schema: {$ref: '#/components/schemas/RegisterOrganizationRequest'}
       responses:
-        '201':
-          description: Organization registered successfully
-        '400':
-          description: Invalid registration request
-        '409':
-          description: Email already registered
+        '201': {description: Organization registered successfully}
+        '400': {description: Invalid request}
+        '409': {description: Email already registered}
   /api/auth/me:
     get:
-      tags:
-      - Authentication
+      tags: [Authentication]
       summary: Get current authenticated user
-      security:
-      - bearerAuth: []
+      security: [{bearerAuth: []}]
       responses:
-        '200':
-          description: Current user
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    $ref: '#/components/schemas/AuthUser'
-        '401':
-          description: Unauthorized
+        '200': {description: Current user}
+        '401': {description: Unauthorized}
   /api/mis/import:
     post:
-      tags:
-      - MIS
+      tags: [MIS]
       summary: Import MIS Excel file
-      security:
-      - bearerAuth: []
+      security: [{bearerAuth: []}]
       requestBody:
         required: true
         content:
           multipart/form-data:
             schema:
               type: object
-              required:
-              - file
+              required: [file]
               properties:
-                file:
-                  type: string
-                  format: binary
-                reportingMonth:
-                  type: string
-                  format: date
-                  example: '2026-06-01'
+                file: {type: string, format: binary}
+                reportingMonth: {type: string, format: date, example: '2026-06-01'}
       responses:
-        '200':
-          description: MIS file imported successfully
-        '400':
-          description: Invalid file or import request
-        '401':
-          description: Unauthorized
+        '200': {description: MIS file imported successfully}
+        '400': {description: Invalid file or import request}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
   /api/mis/data:
     get:
-      tags:
-      - MIS
+      tags: [MIS]
       summary: Get MIS data
-      security:
-      - bearerAuth: []
+      security: [{bearerAuth: []}]
       parameters:
-      - name: month
-        in: query
-        schema:
-          type: string
-          format: date
-      - name: bank
-        in: query
-        schema:
-          type: string
-      - name: product
-        in: query
-        schema:
-          type: string
-      - name: team
-        in: query
-        schema:
-          type: string
-      - name: seller
-        in: query
-        schema:
-          type: string
-      - name: city
-        in: query
-        schema:
-          type: string
+        - {name: month, in: query, schema: {type: string, format: date}}
+        - {name: bank, in: query, schema: {type: string}}
+        - {name: product, in: query, schema: {type: string}}
+        - {name: team, in: query, schema: {type: string}}
+        - {name: seller, in: query, schema: {type: string}}
+        - {name: city, in: query, schema: {type: string}}
+        - {$ref: '#/components/parameters/OrganizationId'}
       responses:
-        '200':
-          description: MIS data retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/MISRecord'
-        '401':
-          description: Unauthorized
+        '200': {description: MIS data retrieved successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
   /api/mis/months:
     get:
-      tags:
-      - MIS
-      summary: Get available MIS reporting months
-      security:
-      - bearerAuth: []
+      tags: [MIS]
+      summary: Get available MIS months
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: '#/components/parameters/OrganizationId'}]
       responses:
-        '200':
-          description: Available MIS months retrieved successfully
-        '401':
-          description: Unauthorized
-  /api/mis/data/{id}/status:
-    patch:
-      tags:
-      - MIS
-      summary: Update MIS transaction reconciliation status
-      description: Organization administrators can manually update a transaction status.
-        Marking a transaction APPROVED records the bank approval timestamp.
-      security:
-      - bearerAuth: []
+        '200': {description: Available months}
+        '401': {description: Unauthorized}
+  /api/dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Get dashboard analytics
+      security: [{bearerAuth: []}]
       parameters:
-      - name: id
-        in: path
+        - {name: month, in: query, schema: {type: string, format: date}, example: '2026-06-01'}
+        - {$ref: '#/components/parameters/OrganizationId'}
+      responses:
+        '200': {description: Dashboard data retrieved successfully}
+        '400': {description: Organization selection required for SUPER_ADMIN}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+  /api/users:
+    get:
+      tags: [Users]
+      summary: Get organization users
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Users retrieved successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+    post:
+      tags: [Users]
+      summary: Create organization user
+      security: [{bearerAuth: []}]
+      requestBody:
         required: true
-        schema:
-          type: integer
-        description: Loan disbursement ID
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateUserRequest'}
+      responses:
+        '201': {description: User created successfully}
+        '400': {description: Invalid request or email already registered}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+  /api/users/roles:
+    get:
+      tags: [Users]
+      summary: Get available roles
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Roles retrieved successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+  /api/users/{id}:
+    get:
+      tags: [Users]
+      summary: Get user by ID
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      responses:
+        '200': {description: User retrieved successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+        '404': {description: User not found}
+    put:
+      tags: [Users]
+      summary: Update user
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UpdateUserRequest'}
+      responses:
+        '200': {description: User updated successfully}
+        '400': {description: Invalid request}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+        '404': {description: User not found}
+    delete:
+      tags: [Users]
+      summary: Deactivate user
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      responses:
+        '200': {description: User deactivated successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+        '404': {description: User not found}
+  /api/users/{id}/status:
+    patch:
+      tags: [Users]
+      summary: Update user status
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UpdateUserStatusRequest'}
+      responses:
+        '200': {description: User status updated successfully}
+        '400': {description: Invalid status}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+        '404': {description: User not found}
+  /api/users/{id}/role:
+    patch:
+      tags: [Users]
+      summary: Change user role
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UpdateUserRoleRequest'}
+      responses:
+        '200': {description: User role updated successfully}
+        '400': {description: Invalid role}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+        '404': {description: User not found}
+  /api/users/{id}/password:
+    patch:
+      tags: [Users]
+      summary: Update user password
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UpdateUserPasswordRequest'}
+      responses:
+        '200': {description: Password updated successfully}
+        '400': {description: Invalid password}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+        '404': {description: User not found}
+  /api/departments:
+    get:
+      tags: [Departments]
+      summary: Get organization departments
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: '#/components/parameters/OrganizationId'}]
+      responses:
+        '200': {description: Departments retrieved successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+    post:
+      tags: [Departments]
+      summary: Create department
+      security: [{bearerAuth: []}]
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-              - status
+              required: [name]
               properties:
-                status:
-                  type: string
-                  enum:
-                  - PENDING
-                  - MATCHED
-                  - VARIANCE
-                  - NOT_FOUND
-                  - APPROVED
-                  - REJECTED
-                  example: APPROVED
-                remarks:
-                  type: string
-                  nullable: true
-                  example: Verified manually with bank records
+                name: {type: string, example: Retail Loans}
       responses:
-        '200':
-          description: Transaction status updated successfully
-        '400':
-          description: Invalid request or status transition
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Transaction not found
-  /api/payout/rules:
-    get:
-      tags:
-      - Payout
-      summary: Get payout rules
-      description: Returns the organization's active and inactive payout rules. Default
-        rules are created automatically if no active rules exist.
-      security:
-      - bearerAuth: []
-      responses:
-        '200':
-          description: Payout rules retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/PayoutRule'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-    post:
-      tags:
-      - Payout
-      summary: Create payout rule
-      security:
-      - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreatePayoutRuleRequest'
-      responses:
-        '200':
-          description: Payout rule created successfully
-        '400':
-          description: Invalid payout rule
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-  /api/payout/periods:
-    get:
-      tags:
-      - Payout
-      summary: Get payout periods
-      security:
-      - bearerAuth: []
-      responses:
-        '200':
-          description: Payout periods retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/PayoutPeriod'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-    post:
-      tags:
-      - Payout
-      summary: Create payout period
-      security:
-      - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreatePayoutPeriodRequest'
-      responses:
-        '200':
-          description: Payout period created successfully
-        '400':
-          description: Invalid period or period already exists
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-  /api/payout/periods/{periodId}/calculate:
-    post:
-      tags:
-      - Payout
-      summary: Calculate payouts for a period
-      description: Calculates Team Leader payouts using APPROVED transactions whose
-        bank approval date falls within the payout month.
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: periodId
-        in: path
-        required: true
-        schema:
-          type: integer
-      responses:
-        '200':
-          description: Payout calculation completed successfully
-        '400':
-          description: Calculation failed or no applicable payout rules exist
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-  /api/payout/periods/{periodId}:
-    get:
-      tags:
-      - Payout
-      summary: Get payout results for a period
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: periodId
-        in: path
-        required: true
-        schema:
-          type: integer
-      responses:
-        '200':
-          description: Payout results retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Payout'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-  /api/payout/{id}/status:
-    patch:
-      tags:
-      - Payout
-      summary: Update payout status
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: Payout ID
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdatePayoutStatusRequest'
-      responses:
-        '200':
-          description: Payout status updated successfully
-        '400':
-          description: Invalid status or backward status transition
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Payout not found
-  /api/dashboard:
-    get:
-      tags:
-      - Dashboard
-      summary: Get dashboard analytics
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: month
-        in: query
-        schema:
-          type: string
-          format: date
-        example: '2026-06-01'
-      responses:
-        '200':
-          description: Dashboard data retrieved successfully
-        '401':
-          description: Unauthorized
-  /api/users:
-    get:
-      tags:
-      - Users
-      summary: Get organization users
-      security:
-      - bearerAuth: []
-      responses:
-        '200':
-          description: Users retrieved successfully
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-    post:
-      tags:
-      - Users
-      summary: Create organization user
-      security:
-      - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateUserRequest'
-      responses:
-        '201':
-          description: User created successfully
-        '400':
-          description: Invalid request or email already registered
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-  /api/users/roles:
-    get:
-      tags:
-      - Users
-      summary: Get available organization roles
-      security:
-      - bearerAuth: []
-      responses:
-        '200':
-          description: Roles retrieved successfully
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-  /api/users/{id}:
-    get:
-      tags:
-      - Users
-      summary: Get user by ID
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-      responses:
-        '200':
-          description: User retrieved successfully
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: User not found
-    put:
-      tags:
-      - Users
-      summary: Update user
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateUserRequest'
-      responses:
-        '200':
-          description: User updated successfully
-        '400':
-          description: Invalid request
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: User not found
-    delete:
-      tags:
-      - Users
-      summary: Deactivate user
-      description: Soft deletes the user by changing status to INACTIVE.
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-      responses:
-        '200':
-          description: User deactivated successfully
-        '400':
-          description: Unable to deactivate user
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: User not found
-  /api/users/{id}/status:
-    patch:
-      tags:
-      - Users
-      summary: Update user status
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateUserStatusRequest'
-      responses:
-        '200':
-          description: User status updated successfully
-        '400':
-          description: Invalid status
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: User not found
-  /api/users/{id}/role:
-    patch:
-      tags:
-      - Users
-      summary: Change user role
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateUserRoleRequest'
-      responses:
-        '200':
-          description: User role updated successfully
-        '400':
-          description: Invalid role
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: User not found
-  /api/users/{id}/password:
-    patch:
-      tags:
-      - Users
-      summary: Update user password
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateUserPasswordRequest'
-      responses:
-        '200':
-          description: Password updated successfully
-        '400':
-          description: Invalid password
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: User not found
-  /api/departments:
-    get:
-      tags:
-      - Departments
-      summary: List departments
-      security:
-      - bearerAuth: []
-      responses:
-        '200':
-          description: Departments retrieved successfully
-        '401':
-          description: Authentication required
-        '403':
-          description: Forbidden
-    post:
-      tags:
-      - Departments
-      summary: Create department
-      security:
-      - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DepartmentInput'
-      responses:
-        '201':
-          description: Department created successfully
-        '400':
-          description: Invalid request
-        '401':
-          description: Authentication required
-        '403':
-          description: Forbidden
+        '201': {description: Department created successfully}
+        '400': {description: Invalid request}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
   /api/departments/{id}:
-    get:
-      tags:
-      - Departments
-      summary: Get department
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-      responses:
-        '200':
-          description: Department retrieved successfully
-        '404':
-          description: Department not found
     put:
-      tags:
-      - Departments
+      tags: [Departments]
       summary: Update department
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: '#/components/parameters/Id'}]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DepartmentInput'
+              type: object
+              required: [name]
+              properties:
+                name: {type: string}
       responses:
-        '200':
-          description: Department updated successfully
-        '400':
-          description: Invalid request
-        '404':
-          description: Department not found
+        '200': {description: Department updated successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+        '404': {description: Department not found}
+    delete:
+      tags: [Departments]
+      summary: Deactivate department
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      responses:
+        '200': {description: Department deactivated successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+        '404': {description: Department not found}
   /api/teams:
     get:
-      tags:
-      - Teams
-      summary: List teams
-      security:
-      - bearerAuth: []
+      tags: [Teams]
+      summary: Get organization teams
+      security: [{bearerAuth: []}]
       parameters:
-      - name: departmentId
-        in: query
-        required: false
-        schema:
-          type: integer
+        - {$ref: '#/components/parameters/OrganizationId'}
+        - {name: departmentId, in: query, schema: {type: integer}}
       responses:
-        '200':
-          description: Teams retrieved successfully
-        '401':
-          description: Authentication required
-        '403':
-          description: Forbidden
+        '200': {description: Teams retrieved successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
     post:
-      tags:
-      - Teams
+      tags: [Teams]
       summary: Create team
-      security:
-      - bearerAuth: []
+      security: [{bearerAuth: []}]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TeamInput'
+              type: object
+              required: [name, departmentId]
+              properties:
+                name: {type: string, example: North Team}
+                departmentId: {type: integer, example: 2}
+                teamLeaderId: {type: integer, nullable: true, example: 12}
       responses:
-        '201':
-          description: Team created successfully
-        '400':
-          description: Invalid request
-        '401':
-          description: Authentication required
-        '403':
-          description: Forbidden
+        '201': {description: Team created successfully}
+        '400': {description: Invalid request}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
   /api/teams/{id}:
-    get:
-      tags:
-      - Teams
-      summary: Get team
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-      responses:
-        '200':
-          description: Team retrieved successfully
-        '404':
-          description: Team not found
     put:
-      tags:
-      - Teams
+      tags: [Teams]
       summary: Update team
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: '#/components/parameters/Id'}]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TeamInput'
+              type: object
+              properties:
+                name: {type: string}
+                departmentId: {type: integer}
+                teamLeaderId: {type: integer, nullable: true}
       responses:
-        '200':
-          description: Team updated successfully
-        '400':
-          description: Invalid request
-        '404':
-          description: Team not found
+        '200': {description: Team updated successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+        '404': {description: Team not found}
+    delete:
+      tags: [Teams]
+      summary: Deactivate team
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      responses:
+        '200': {description: Team deactivated successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+        '404': {description: Team not found}
+  /api/payout/periods:
+    get:
+      tags: [Payout]
+      summary: Get payout periods
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: '#/components/parameters/OrganizationId'}]
+      responses:
+        '200': {description: Payout periods retrieved successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+  /api/payout/history:
+    get:
+      tags: [Payout]
+      summary: Get payout history
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/OrganizationId'}
+        - {name: teamLeaderId, in: query, schema: {type: integer}}
+        - {name: periodMonth, in: query, schema: {type: string, example: 2026-06}}
+      responses:
+        '200': {description: Payout history retrieved successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+  /api/payout/periods/{id}/calculate:
+    post:
+      tags: [Payout]
+      summary: Calculate payout period
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      responses:
+        '200': {description: Payout calculated successfully}
+        '400': {description: Invalid payout period or state}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+  /api/payout/periods/{id}/review:
+    post:
+      tags: [Payout]
+      summary: Review payout period
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      responses:
+        '200': {description: Payout period reviewed successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+  /api/payout/periods/{id}/approve:
+    post:
+      tags: [Payout]
+      summary: Approve payout period
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      responses:
+        '200': {description: Payout period approved successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+  /api/payout/periods/{id}/pay:
+    post:
+      tags: [Payout]
+      summary: Mark payout period as paid
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      responses:
+        '200': {description: Payout marked as paid}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+  /api/payout/periods/{id}/lock:
+    post:
+      tags: [Payout]
+      summary: Lock payout period
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      responses:
+        '200': {description: Payout period locked successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+  /api/reports/summary:
+    get:
+      tags: [Reports]
+      summary: MIS summary report
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: month, in: query, schema: {type: string, format: date}}
+        - {$ref: '#/components/parameters/OrganizationId'}
+      responses:
+        '200': {description: Summary report retrieved successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+  /api/reports/disbursement:
+    get:
+      tags: [Reports]
+      summary: Disbursement report
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: month, in: query, schema: {type: string, format: date}}
+        - {name: bank, in: query, schema: {type: string}}
+        - {name: product, in: query, schema: {type: string}}
+        - {name: team, in: query, schema: {type: string}}
+        - {$ref: '#/components/parameters/OrganizationId'}
+      responses:
+        '200': {description: Disbursement report retrieved successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+  /api/reports/team-performance:
+    get:
+      tags: [Reports]
+      summary: Team performance report
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: month, in: query, schema: {type: string, format: date}}
+        - {name: teamId, in: query, schema: {type: integer}}
+        - {$ref: '#/components/parameters/OrganizationId'}
+      responses:
+        '200': {description: Team performance report retrieved successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+  /api/reports/reconciliation:
+    get:
+      tags: [Reports]
+      summary: Approval and reconciliation report
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: month, in: query, schema: {type: string, format: date}}
+        - {name: status, in: query, schema: {type: string, enum: [PENDING, MATCHED, VARIANCE, NOT_FOUND, APPROVED, REJECTED]}}
+        - {$ref: '#/components/parameters/OrganizationId'}
+      responses:
+        '200': {description: Reconciliation report retrieved successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+  /api/reports/payout:
+    get:
+      tags: [Reports]
+      summary: Payout report
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: periodMonth, in: query, schema: {type: string, example: 2026-06}}
+        - {name: teamLeaderId, in: query, schema: {type: integer}}
+        - {$ref: '#/components/parameters/OrganizationId'}
+      responses:
+        '200': {description: Payout report retrieved successfully}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
+  /api/reports/export:
+    get:
+      tags: [Reports]
+      summary: Export report data
+      security: [{bearerAuth: []}]
+      parameters:
+        - name: report
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [summary, disbursement, team-performance, reconciliation, payout]
+        - {name: month, in: query, schema: {type: string, format: date}}
+        - {$ref: '#/components/parameters/OrganizationId'}
+      responses:
+        '200': {description: Report exported successfully}
+        '400': {description: Invalid report type}
+        '401': {description: Unauthorized}
+        '403': {description: Forbidden}
