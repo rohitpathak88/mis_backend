@@ -2,7 +2,7 @@ CREATE DATABASE IF NOT EXISTS mis_platform
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
 
-//-- USE mis_platform;
+USE mis_platform;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
